@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Search Highlight - Vanilla JS Example</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="stylesheet" href="../../dist/pdf-search-highlight.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  .toolbar {
+    background: #16213e; padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid #0f3460; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .toolbar h1 { font-size: 16px; color: #e94560; margin-right: 8px; white-space: nowrap; }
+
+  .search-box {
+    display: flex; align-items: center; background: #0f3460; border-radius: 8px;
+    padding: 6px 12px; flex: 1; max-width: 400px; min-width: 200px;
+  }
+  .search-box input {
+    background: transparent; border: none; outline: none; color: #fff; font-size: 14px; width: 100%;
+  }
+  .search-box input::placeholder { color: #666; }
+
+  .nav-btns { display: flex; gap: 4px; align-items: center; }
+  .nav-btns button, .upload-btn {
+    background: #e94560; color: #fff; border: none; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; font-size: 13px; white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .nav-btns button:hover, .upload-btn:hover { background: #c73650; }
+  .nav-btns button:disabled { background: #333; cursor: default; }
+  .match-info { font-size: 13px; color: #aaa; min-width: 60px; text-align: center; }
+
+  .options { display: flex; align-items: center; gap: 8px; }
+  .options label { font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .options input[type="checkbox"] { accent-color: #e94560; }
+
+  .upload-area {
+    flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px;
+  }
+  .drop-zone {
+    border: 2px dashed #e94560; border-radius: 16px; padding: 60px 40px;
+    text-align: center; cursor: pointer; transition: all 0.3s; max-width: 500px; width: 100%;
+  }
+  .drop-zone:hover, .drop-zone.dragover { background: rgba(233,69,96,0.1); border-color: #fff; }
+  .drop-zone svg { width: 64px; height: 64px; margin-bottom: 16px; }
+  .drop-zone p { font-size: 16px; margin-bottom: 8px; }
+  .drop-zone span { font-size: 13px; color: #888; }
+
+  #viewer { flex: 1; overflow-y: auto; padding: 16px; display: none; }
+  #viewer.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Search UI — can be anywhere: header, sidebar, modal, etc. -->
+<div class="toolbar">
+  <h1>PDF Search Highlight</h1>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search in PDF..." disabled />
+  </div>
+  <div class="nav-btns">
+    <button id="prevBtn" disabled>&#9664;</button>
+    <span class="match-info" id="matchInfo"></span>
+    <button id="nextBtn" disabled>&#9654;</button>
+  </div>
+  <div class="options">
+    <label><input type="checkbox" id="caseSensitive" /> Case sensitive</label>
+  </div>
+  <label class="upload-btn">
+    Choose PDF
+    <input type="file" id="fileInput" accept=".pdf" hidden />
+  </label>
+</div>
+
+<div class="upload-area" id="uploadArea">
+  <div class="drop-zone" id="dropZone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="1.5">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+      <line x1="12" y1="18" x2="12" y2="12"/>
+      <polyline points="9,15 12,12 15,15"/>
+    </svg>
+    <p>Drag & drop a PDF file here</p>
+    <span>or click "Choose PDF" above</span>
+  </div>
+</div>
+
+<!-- PDF container — completely separate from search UI -->
+<div id="viewer"></div>
+
+<script type="module">
+  // Level 1 API: PDFRenderer + SearchController (separate concerns)
+  import { PDFRenderer, SearchController } from '../../dist/core/index.js';
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const viewerEl = document.getElementById('viewer');
+  const searchInput = document.getElementById('searchInput');
+  const matchInfo = document.getElementById('matchInfo');
+  const uploadArea = document.getElementById('uploadArea');
+  const dropZone = document.getElementById('dropZone');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const caseSensitive = document.getElementById('caseSensitive');
+
+  // 1) PDF Renderer — renders into #viewer
+  const renderer = new PDFRenderer(viewerEl, {});
+  renderer.setPdfjsLib(pdfjsLib);
+
+  // 2) Search Controller — headless, no UI
+  const search = new SearchController();
+
+  // React to search state changes
+  search.onChange = ({ current, total }) => {
+    prevBtn.disabled = total === 0;
+    nextBtn.disabled = total === 0;
+    matchInfo.textContent = total > 0
+      ? `${current + 1}/${total}`
+      : (searchInput.value.trim() ? '0 results' : '');
+  };
+
+  // File input
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) loadFile(e.target.files[0]);
+  });
+
+  // Drag & drop
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type === 'application/pdf') loadFile(f);
+  });
+
+  async function loadFile(file) {
+    uploadArea.style.display = 'none';
+    viewerEl.classList.add('active');
+
+    // Render PDF
+    await renderer.loadDocument(file);
+    const pages = await renderer.renderAllPages();
+
+    // Connect search to rendered pages
+    search.setPages(pages);
+
+    searchInput.disabled = false;
+    searchInput.focus();
+  }
+
+  // Search with debounce
+  let debounceTimer;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      search.search(searchInput.value, { caseSensitive: caseSensitive.checked });
+    }, 250);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.shiftKey ? search.prev() : search.next();
+    }
+  });
+
+  caseSensitive.addEventListener('change', () => {
+    search.search(searchInput.value, { caseSensitive: caseSensitive.checked });
+  });
+
+  prevBtn.addEventListener('click', () => search.prev());
+  nextBtn.addEventListener('click', () => search.next());
+</script>
+</body>
+</html>
