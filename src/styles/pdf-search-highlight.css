@@ -42,6 +42,11 @@
 .highlight {
   background: rgba(255, 230, 0, 0.45) !important;
   border-radius: 2px;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  color: transparent;
 }
 
 .highlight.active {

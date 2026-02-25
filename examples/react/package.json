@@ -14,6 +14,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "pdf-search-highlight": "^0.1.2",
     "pdfjs-dist": "^3.11.174",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

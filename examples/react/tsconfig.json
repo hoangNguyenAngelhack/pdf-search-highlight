@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "pdf-search-highlight/react": ["../../src/react/index.ts"],
+      "pdf-search-highlight/styles.css": ["../../src/styles/pdf-search-highlight.css"],
+      "pdf-search-highlight": ["../../src/core/index.ts"]
+    }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"]
+}

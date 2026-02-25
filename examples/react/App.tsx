@@ -10,7 +10,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [caseSensitive, setCaseSensitive] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // PDF renderer — renders into containerRef
   const { containerRef, pages, loadPDF } = usePDFRenderer(pdfjsLib);
