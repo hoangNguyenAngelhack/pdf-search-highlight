@@ -1,4 +1,5 @@
 {
-  "buildCommand": null,
-  "outputDirectory": "examples/vanilla"
+  "installCommand": "npm install && cd examples/react && npm install",
+  "buildCommand": "cd examples/react && npm run build",
+  "outputDirectory": "examples/react/dist"
 }
