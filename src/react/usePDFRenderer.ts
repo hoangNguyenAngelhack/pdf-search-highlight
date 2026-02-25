@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { PDFRenderer } from '../core/PDFRenderer';
+import { ZOOM_STEP, MIN_SCALE, MAX_SCALE } from '../core/constants';
 import type { PDFSearchViewerOptions, PageData, PDFSource } from '../core';
 
 export interface UsePDFRendererReturn {
@@ -11,8 +12,18 @@ export interface UsePDFRendererReturn {
   pageCount: number;
   /** Whether PDF is currently loading */
   loading: boolean;
+  /** Current scale value */
+  scale: number | 'auto';
   /** Load a PDF source */
   loadPDF: (source: PDFSource) => Promise<PageData[]>;
+  /** Set scale and re-render */
+  setScale: (scale: number | 'auto') => Promise<PageData[]>;
+  /** Zoom in by one step */
+  zoomIn: () => Promise<PageData[]>;
+  /** Zoom out by one step */
+  zoomOut: () => Promise<PageData[]>;
+  /** Download the loaded PDF */
+  download: (filename?: string) => Promise<void>;
   /** Clean up renderer */
   cleanup: () => void;
 }
@@ -22,7 +33,7 @@ export interface UsePDFRendererReturn {
  * Returns pages data that can be passed to useSearchController.
  *
  * ```tsx
- * const { containerRef, pages, loadPDF } = usePDFRenderer(pdfjsLib);
+ * const { containerRef, pages, loadPDF, zoomIn, zoomOut, download } = usePDFRenderer(pdfjsLib);
  *
  * return <div ref={containerRef} style={{ height: '80vh', overflow: 'auto' }} />;
  * ```
@@ -36,6 +47,7 @@ export function usePDFRenderer(
   const [pages, setPages] = useState<PageData[]>([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [scale, setScaleState] = useState<number | 'auto'>(options.scale ?? 'auto');
 
   // Init renderer when container is available
   useEffect(() => {
@@ -69,10 +81,49 @@ export function usePDFRenderer(
         const p = await renderer.renderAllPages();
         setPages(p);
         setPageCount(count);
+        setScaleState(renderer.getScale());
         return p;
       } finally {
         setLoading(false);
       }
+    },
+    [getRenderer]
+  );
+
+  const setScale = useCallback(
+    async (newScale: number | 'auto'): Promise<PageData[]> => {
+      const renderer = getRenderer();
+      renderer.setScale(newScale);
+      const p = await renderer.renderAllPages();
+      setPages(p);
+      setScaleState(newScale);
+      return p;
+    },
+    [getRenderer]
+  );
+
+  const zoomIn = useCallback(async (): Promise<PageData[]> => {
+    const renderer = getRenderer();
+    const current = renderer.getScale() === 'auto'
+      ? renderer.getEffectiveScale()
+      : (renderer.getScale() as number);
+    const newScale = Math.min(current + ZOOM_STEP, MAX_SCALE);
+    return setScale(newScale);
+  }, [getRenderer, setScale]);
+
+  const zoomOut = useCallback(async (): Promise<PageData[]> => {
+    const renderer = getRenderer();
+    const current = renderer.getScale() === 'auto'
+      ? renderer.getEffectiveScale()
+      : (renderer.getScale() as number);
+    const newScale = Math.max(current - ZOOM_STEP, MIN_SCALE);
+    return setScale(newScale);
+  }, [getRenderer, setScale]);
+
+  const download = useCallback(
+    async (filename?: string) => {
+      const renderer = getRenderer();
+      await renderer.download(filename);
     },
     [getRenderer]
   );
@@ -84,5 +135,8 @@ export function usePDFRenderer(
     setPageCount(0);
   }, []);
 
-  return { containerRef, pages, pageCount, loading, loadPDF, cleanup };
+  return {
+    containerRef, pages, pageCount, loading, scale,
+    loadPDF, setScale, zoomIn, zoomOut, download, cleanup,
+  };
 }

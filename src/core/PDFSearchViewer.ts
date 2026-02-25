@@ -2,7 +2,7 @@ import { EventEmitter } from './EventEmitter';
 import { PDFRenderer } from './PDFRenderer';
 import { searchPage } from './SearchEngine';
 import { HighlightManager } from './HighlightManager';
-import { DEFAULT_CLASS_NAMES } from './constants';
+import { DEFAULT_CLASS_NAMES, ZOOM_STEP, MIN_SCALE, MAX_SCALE } from './constants';
 import type {
   PDFSearchViewerOptions,
   SearchOptions,
@@ -149,6 +149,52 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
     this.lastQuery = '';
     this.emit('search', { query: '', total: 0 });
     this.emit('matchchange', { current: -1, total: 0 });
+  }
+
+  /** Get the current scale setting. */
+  getScale(): number | 'auto' {
+    return this.renderer.getScale();
+  }
+
+  /** Set scale and re-render. Preserves current search state. */
+  async setScale(scale: number | 'auto'): Promise<void> {
+    if (this.destroyed) throw new Error('PDFSearchViewer has been destroyed');
+    this.renderer.setScale(scale);
+    await this.rerender();
+    this.emit('zoom', { scale: this.renderer.getEffectiveScale() });
+  }
+
+  /** Zoom in by one step. */
+  async zoomIn(): Promise<void> {
+    const current = this.resolveCurrentScale();
+    const newScale = Math.min(current + ZOOM_STEP, MAX_SCALE);
+    await this.setScale(newScale);
+  }
+
+  /** Zoom out by one step. */
+  async zoomOut(): Promise<void> {
+    const current = this.resolveCurrentScale();
+    const newScale = Math.max(current - ZOOM_STEP, MIN_SCALE);
+    await this.setScale(newScale);
+  }
+
+  /** Download the currently loaded PDF. */
+  async download(filename?: string): Promise<void> {
+    if (this.destroyed) throw new Error('PDFSearchViewer has been destroyed');
+    await this.renderer.download(filename);
+  }
+
+  private resolveCurrentScale(): number {
+    const s = this.renderer.getScale();
+    return s === 'auto' ? this.renderer.getEffectiveScale() : s;
+  }
+
+  private async rerender(): Promise<void> {
+    this.highlightManager.clearHighlights(this.pageData);
+    this.pageData = await this.renderer.renderAllPages();
+    if (this.lastQuery.trim()) {
+      this.search(this.lastQuery, this.lastSearchOptions);
+    }
   }
 
   /**

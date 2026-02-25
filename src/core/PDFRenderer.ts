@@ -23,6 +23,7 @@ export class PDFRenderer {
   private pdfDoc: PDFDocumentProxy | null = null;
   private pageData: PageData[] = [];
   private pdfjsLib: any = null;
+  private effectiveScale: number = 1;
 
   constructor(container: HTMLElement, options: PDFSearchViewerOptions) {
     this.container = container;
@@ -99,6 +100,7 @@ export class PDFRenderer {
     totalPages: number
   ): Promise<PageData> {
     const scale = this.calculateScale(page);
+    if (pageNum === 1) this.effectiveScale = scale;
     const vp = page.getViewport({ scale });
 
     // Page container
@@ -188,6 +190,40 @@ export class PDFRenderer {
     const defaultVp = page.getViewport({ scale: 1 });
     const containerWidth = this.container.clientWidth || 800;
     return Math.min(containerWidth / defaultVp.width, 2);
+  }
+
+  /** Set the scale for subsequent renders. */
+  setScale(scale: number | 'auto'): void {
+    this.scale = scale;
+  }
+
+  /** Get the configured scale setting. */
+  getScale(): number | 'auto' {
+    return this.scale;
+  }
+
+  /** Get the actual numeric scale used in the last render. */
+  getEffectiveScale(): number {
+    return this.effectiveScale;
+  }
+
+  /**
+   * Download the currently loaded PDF.
+   */
+  async download(filename: string = 'document.pdf'): Promise<void> {
+    if (!this.pdfDoc) throw new Error('No PDF document loaded');
+
+    const data = await this.pdfDoc.getData();
+    const blob = new Blob([data as BlobPart], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   getClassNames(): Required<ClassNames> {

@@ -43,6 +43,7 @@ export class SearchController {
   private highlightManager: HighlightManager;
   private pages: PageData[] = [];
   private lastQuery = '';
+  private lastSearchOptions: SearchOptions = {};
 
   /** Callback fired when match state changes (search, next, prev, clear). */
   onChange: ((state: { current: number; total: number; query: string }) => void) | null = null;
@@ -57,8 +58,14 @@ export class SearchController {
    * Call this after rendering PDF pages.
    */
   setPages(pages: PageData[]): void {
+    const savedQuery = this.lastQuery;
+    const savedOptions = this.lastSearchOptions;
     this.clear();
     this.pages = pages;
+    // Re-apply search if there was an active query (e.g. after zoom)
+    if (savedQuery.trim()) {
+      this.search(savedQuery, savedOptions);
+    }
   }
 
   /**
@@ -68,6 +75,7 @@ export class SearchController {
   search(query: string, options: SearchOptions = {}): number {
     this.highlightManager.clearHighlights(this.pages);
     this.lastQuery = query;
+    this.lastSearchOptions = options;
 
     const trimmed = query.trim();
     if (!trimmed) {

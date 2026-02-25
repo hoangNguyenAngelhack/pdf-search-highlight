@@ -38,6 +38,9 @@ export interface PDFSearchViewerProps {
   /** Called when active match changes. */
   onMatchChange?: (data: { current: number; total: number }) => void;
 
+  /** Called when zoom/scale changes. */
+  onZoom?: (data: { scale: number }) => void;
+
   /** Called on error. */
   onError?: (data: { error: Error; context: string }) => void;
 
@@ -59,6 +62,16 @@ export interface PDFSearchViewerHandle {
   getMatchCount: () => number;
   /** Get current match index. */
   getCurrentMatchIndex: () => number;
+  /** Zoom in by one step. */
+  zoomIn: () => Promise<void>;
+  /** Zoom out by one step. */
+  zoomOut: () => Promise<void>;
+  /** Set scale and re-render. */
+  setScale: (scale: number | 'auto') => Promise<void>;
+  /** Get current scale. */
+  getScale: () => number | 'auto';
+  /** Download the loaded PDF. */
+  download: (filename?: string) => Promise<void>;
   /** Get underlying core instance. */
   getCore: () => CorePDFSearchViewer | null;
 }
@@ -76,6 +89,7 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
     onLoad,
     onSearch,
     onMatchChange,
+    onZoom,
     onError,
     className,
     style,
@@ -85,8 +99,8 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
   const coreRef = useRef<CorePDFSearchViewer | null>(null);
 
   // Store latest callbacks in refs to avoid re-subscribing
-  const callbackRefs = useRef({ onLoad, onSearch, onMatchChange, onError });
-  callbackRefs.current = { onLoad, onSearch, onMatchChange, onError };
+  const callbackRefs = useRef({ onLoad, onSearch, onMatchChange, onZoom, onError });
+  callbackRefs.current = { onLoad, onSearch, onMatchChange, onZoom, onError };
 
   // Initialize core on mount
   useEffect(() => {
@@ -101,6 +115,7 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
     core.on('load', (data) => callbackRefs.current.onLoad?.(data));
     core.on('search', (data) => callbackRefs.current.onSearch?.(data));
     core.on('matchchange', (data) => callbackRefs.current.onMatchChange?.(data));
+    core.on('zoom', (data) => callbackRefs.current.onZoom?.(data));
     core.on('error', (data) => callbackRefs.current.onError?.(data));
 
     coreRef.current = core;
@@ -138,6 +153,11 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
     clearSearch: () => coreRef.current?.clearSearch(),
     getMatchCount: () => coreRef.current?.getMatchCount() ?? 0,
     getCurrentMatchIndex: () => coreRef.current?.getCurrentMatchIndex() ?? -1,
+    zoomIn: async () => { await coreRef.current?.zoomIn(); },
+    zoomOut: async () => { await coreRef.current?.zoomOut(); },
+    setScale: async (s: number | 'auto') => { await coreRef.current?.setScale(s); },
+    getScale: () => coreRef.current?.getScale() ?? 'auto',
+    download: async (filename?: string) => { await coreRef.current?.download(filename); },
     getCore: () => coreRef.current,
   }));
 

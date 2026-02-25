@@ -13,7 +13,7 @@ export default function App() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // PDF renderer — renders into containerRef
-  const { containerRef, pages, loadPDF } = usePDFRenderer(pdfjsLib);
+  const { containerRef, pages, loadPDF, zoomIn, zoomOut, download, scale } = usePDFRenderer(pdfjsLib);
 
   // Search controller — headless, connected to rendered pages
   const { search, next, prev, current, total } = useSearchController(pages);
@@ -97,6 +97,20 @@ export default function App() {
           />{' '}
           Case sensitive
         </label>
+
+        <button onClick={zoomOut} disabled={!file}>-</button>
+        <span style={{ color: '#aaa', fontSize: 12, minWidth: 40, textAlign: 'center' }}>
+          {typeof scale === 'number' ? `${Math.round(scale * 100)}%` : 'auto'}
+        </span>
+        <button onClick={zoomIn} disabled={!file}>+</button>
+
+        <button
+          onClick={() => download(file?.name)}
+          disabled={!file}
+          style={{ fontSize: 13 }}
+        >
+          Download
+        </button>
 
         <label
           style={{

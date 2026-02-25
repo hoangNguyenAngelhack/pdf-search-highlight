@@ -8,6 +8,9 @@ export type PDFSearchViewerEventMap = {
   /** Fired when active match changes (via next/prev). */
   matchchange: { current: number; total: number };
 
+  /** Fired when zoom/scale changes. */
+  zoom: { scale: number };
+
   /** Fired on error. */
   error: { error: Error; context: string };
 };
