@@ -45,15 +45,20 @@ export function usePDFRenderer(
     };
   }, []);
 
+  // Store options in a ref so getRenderer/loadPDF don't depend on object identity
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   const getRenderer = useCallback(() => {
     if (!containerRef.current) throw new Error('Container ref not attached');
     if (!rendererRef.current) {
-      const r = new PDFRenderer(containerRef.current, options);
+      const r = new PDFRenderer(containerRef.current, optionsRef.current);
       r.setPdfjsLib(pdfjsLib);
       rendererRef.current = r;
     }
     return rendererRef.current;
-  }, [pdfjsLib, options]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdfjsLib]);
 
   const loadPDF = useCallback(
     async (source: PDFSource): Promise<PageData[]> => {

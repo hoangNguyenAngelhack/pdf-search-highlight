@@ -1,6 +1,6 @@
 {
   "name": "pdf-search-highlight",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Drop-in PDF viewer with text search and highlight. Vanilla JS core + React wrapper.",
   "type": "module",
   "main": "./dist/core/index.cjs",
@@ -76,5 +76,6 @@
   "repository": {
     "type": "git",
     "url": ""
-  }
+  },
+  "packageManager": "pnpm@10.21.0+sha512.da3337267e400fdd3d479a6c68079ac6db01d8ca4f67572083e722775a796788a7a9956613749e000fac20d424b594f7a791a5f4e2e13581c5ef947f26968a40"
 }
