@@ -74,10 +74,16 @@ export class PDFRenderer {
 
   /**
    * Render all pages into the container.
+   * Preserves scroll position across re-renders (e.g. zoom).
    * Returns PageData[] for search/highlight.
    */
   async renderAllPages(): Promise<PageData[]> {
     if (!this.pdfDoc) throw new Error('No PDF document loaded');
+
+    // Save scroll position relative to total content height
+    const prevScrollTop = this.container.scrollTop;
+    const prevScrollHeight = this.container.scrollHeight || 1;
+    const scrollRatio = prevScrollTop / prevScrollHeight;
 
     this.container.innerHTML = '';
     this.container.classList.add(this.cls.container);
@@ -89,6 +95,11 @@ export class PDFRenderer {
       const page = await this.pdfDoc.getPage(i);
       const pd = await this.renderPage(page, i, numPages);
       this.pageData.push(pd);
+    }
+
+    // Restore scroll position proportionally
+    if (prevScrollTop > 0) {
+      this.container.scrollTop = scrollRatio * this.container.scrollHeight;
     }
 
     return this.pageData;

@@ -1,6 +1,6 @@
 # pdf-search-highlight
 
-PDF viewer with text search and highlight. Render PDF, search text with flexible whitespace matching, and navigate between highlighted results. Zoom in/out and download PDF files.
+PDF viewer with text search and highlight. Render PDF, search text with flexible whitespace matching or fuzzy (approximate) matching, and navigate between highlighted results. Zoom in/out and download PDF files.
 
 Built on [pdf.js](https://mozilla.github.io/pdf.js/). Works with Vanilla JS and React.
 
@@ -14,6 +14,7 @@ npm install pdf-search-highlight pdfjs-dist
 
 - Render PDF pages (canvas + text layer)
 - Search with flexible whitespace matching — handles inconsistent PDF text splitting
+- Fuzzy (approximate) search — find text even with typos or OCR errors
 - Cross-span highlight using `<mark>` elements
 - Navigate between matches (next/prev, auto-scroll)
 - Zoom in/out with configurable scale
@@ -46,6 +47,7 @@ search.onChange = ({ current, total }) => {
 };
 
 search.search('hello world');
+search.search('helo wrld', { fuzzy: true, fuzzyThreshold: 0.6 }); // approximate match
 search.next();
 search.prev();
 search.clear();
@@ -199,6 +201,7 @@ const search = new SearchController({
 
 search.setPages(pages);
 search.search('query', { caseSensitive: false, flexibleWhitespace: true });
+search.search('query', { fuzzy: true, fuzzyThreshold: 0.6 });
 search.next();
 search.prev();
 search.goTo(5);
@@ -249,7 +252,9 @@ interface PDFSearchViewerOptions {
 
 interface SearchOptions {
   caseSensitive?: boolean;      // Default: false
-  flexibleWhitespace?: boolean; // Default: true
+  flexibleWhitespace?: boolean; // Default: true (ignored when fuzzy is true)
+  fuzzy?: boolean;              // Default: false — enable approximate matching
+  fuzzyThreshold?: number;      // Default: 0.6 — similarity 0.0–1.0
 }
 ```
 
@@ -287,9 +292,10 @@ Default styles:
 1. **Render**: PDF.js renders each page as `<canvas>` + transparent `<span>` text layer overlay
 2. **Search**: Concatenate all span texts into one string per page, build a `charMap` mapping each character back to its source span
 3. **Flexible whitespace**: Query `"and expensive"` becomes regex `a\s*n\s*d\s*e\s*x\s*p\s*e\s*n\s*s\s*i\s*v\s*e` — matches regardless of whitespace differences in PDF text
-4. **Highlight**: Regex matches on concatenated text → charMap maps back to spans → split span DOM into text nodes + `<mark>` elements
-5. **Navigate**: Prev/next with wrap-around, auto-scroll to active match
-6. **Zoom**: Re-renders all pages at new scale, search highlights are automatically re-applied
+4. **Fuzzy search**: Semi-global Levenshtein alignment finds substrings within edit distance ≤ `queryLength × (1 - threshold)` — handles typos, OCR errors, and garbled text extraction
+5. **Highlight**: Regex/fuzzy matches on concatenated text → charMap maps back to spans → split span DOM into text nodes + `<mark>` elements
+6. **Navigate**: Prev/next with wrap-around, auto-scroll to active match
+7. **Zoom**: Re-renders all pages at new scale, search highlights are automatically re-applied
 
 ## License
 

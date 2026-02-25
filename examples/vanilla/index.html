@@ -35,9 +35,10 @@
   .nav-btns button:disabled { background: #333; cursor: default; }
   .match-info { font-size: 13px; color: #aaa; min-width: 60px; text-align: center; }
 
-  .options { display: flex; align-items: center; gap: 8px; }
+  .options { display: flex; align-items: center; gap: 12px; }
   .options label { font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 4px; cursor: pointer; }
   .options input[type="checkbox"] { accent-color: #e94560; }
+  .options select { background: #0f3460; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 4px; padding: 2px 4px; font-size: 12px; }
 
   .upload-area {
     flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px;
@@ -70,6 +71,15 @@
   </div>
   <div class="options">
     <label><input type="checkbox" id="caseSensitive" /> Case sensitive</label>
+    <label><input type="checkbox" id="fuzzyToggle" /> Fuzzy</label>
+    <label>Threshold
+      <select id="fuzzyThreshold" disabled>
+        <option value="0.9">0.9</option>
+        <option value="0.7">0.7</option>
+        <option value="0.6" selected>0.6</option>
+        <option value="0.4">0.4</option>
+      </select>
+    </label>
   </div>
   <label class="upload-btn">
     Choose PDF
@@ -108,6 +118,8 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const caseSensitive = document.getElementById('caseSensitive');
+  const fuzzyToggle = document.getElementById('fuzzyToggle');
+  const fuzzyThreshold = document.getElementById('fuzzyThreshold');
 
   // 1) PDF Renderer — renders into #viewer
   const renderer = new PDFRenderer(viewerEl, {});
@@ -158,13 +170,23 @@
     searchInput.focus();
   }
 
+  function getSearchOptions() {
+    return {
+      caseSensitive: caseSensitive.checked,
+      fuzzy: fuzzyToggle.checked,
+      fuzzyThreshold: parseFloat(fuzzyThreshold.value),
+    };
+  }
+
+  function runSearch() {
+    search.search(searchInput.value, getSearchOptions());
+  }
+
   // Search with debounce
   let debounceTimer;
   searchInput.addEventListener('input', () => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      search.search(searchInput.value, { caseSensitive: caseSensitive.checked });
-    }, 250);
+    debounceTimer = setTimeout(runSearch, 250);
   });
 
   searchInput.addEventListener('keydown', (e) => {
@@ -173,9 +195,14 @@
     }
   });
 
-  caseSensitive.addEventListener('change', () => {
-    search.search(searchInput.value, { caseSensitive: caseSensitive.checked });
+  caseSensitive.addEventListener('change', runSearch);
+
+  fuzzyToggle.addEventListener('change', () => {
+    fuzzyThreshold.disabled = !fuzzyToggle.checked;
+    runSearch();
   });
+
+  fuzzyThreshold.addEventListener('change', runSearch);
 
   prevBtn.addEventListener('click', () => search.prev());
   nextBtn.addEventListener('click', () => search.next());

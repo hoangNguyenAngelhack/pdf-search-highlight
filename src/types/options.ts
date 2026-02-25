@@ -52,6 +52,17 @@ export interface SearchOptions {
    * Flexible whitespace matching: insert \s* between every character.
    * Handles PDF text split inconsistencies. Defaults to true.
    * Only applies for queries < 200 chars (performance).
+   * Ignored when `fuzzy` is true.
    */
   flexibleWhitespace?: boolean;
+
+  /** Enable approximate (fuzzy) matching. Defaults to false. */
+  fuzzy?: boolean;
+
+  /**
+   * Similarity threshold for fuzzy matching: 0.0–1.0.
+   * similarity = 1 - (editDistance / queryLength).
+   * Higher values require closer matches. Defaults to 0.6.
+   */
+  fuzzyThreshold?: number;
 }

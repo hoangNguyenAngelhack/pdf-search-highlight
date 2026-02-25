@@ -10,6 +10,8 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [caseSensitive, setCaseSensitive] = useState(false);
+  const [fuzzy, setFuzzy] = useState(false);
+  const [fuzzyThreshold, setFuzzyThreshold] = useState(0.6);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // PDF renderer — renders into containerRef
@@ -27,10 +29,10 @@ export default function App() {
   useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      search(query, { caseSensitive });
+      search(query, { caseSensitive, fuzzy, fuzzyThreshold });
     }, 250);
     return () => clearTimeout(debounceRef.current);
-  }, [query, caseSensitive, search]);
+  }, [query, caseSensitive, fuzzy, fuzzyThreshold, search]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -96,6 +98,37 @@ export default function App() {
             onChange={(e) => setCaseSensitive(e.target.checked)}
           />{' '}
           Case sensitive
+        </label>
+
+        <label style={{ fontSize: 12, color: '#aaa', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={fuzzy}
+            onChange={(e) => setFuzzy(e.target.checked)}
+          />{' '}
+          Fuzzy
+        </label>
+
+        <label style={{ fontSize: 12, color: '#aaa' }}>
+          Threshold{' '}
+          <select
+            value={fuzzyThreshold}
+            onChange={(e) => setFuzzyThreshold(parseFloat(e.target.value))}
+            disabled={!fuzzy}
+            style={{
+              background: '#0f3460',
+              color: '#e0e0e0',
+              border: '1px solid #0f3460',
+              borderRadius: 4,
+              padding: '2px 4px',
+              fontSize: 12,
+            }}
+          >
+            <option value={0.9}>0.9</option>
+            <option value={0.7}>0.7</option>
+            <option value={0.6}>0.6</option>
+            <option value={0.4}>0.4</option>
+          </select>
         </label>
 
         <button onClick={zoomOut} disabled={!file}>-</button>
