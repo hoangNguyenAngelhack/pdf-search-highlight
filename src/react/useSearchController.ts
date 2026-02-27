@@ -1,10 +1,12 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { SearchController } from '../core/SearchController';
-import type { SearchOptions, ClassNames, PageData } from '../core';
+import type { SearchOptions, ClassNames, PageData, SearchContext } from '../core';
 
 export interface UseSearchControllerReturn {
   /** Run a search query */
   search: (query: string, options?: SearchOptions) => number;
+  /** Search multiple contexts with different highlight colors */
+  searchMultiple: (contexts: SearchContext[], options?: SearchOptions) => number;
   /** Go to next match */
   next: () => void;
   /** Go to previous match */
@@ -29,7 +31,7 @@ export interface UseSearchControllerOptions {
  *
  * ```tsx
  * const { containerRef, pages, loadPDF } = usePDFRenderer(pdfjsLib);
- * const { search, next, prev, current, total } = useSearchController(pages);
+ * const { search, searchMultiple, next, prev, current, total } = useSearchController(pages);
  *
  * return (
  *   <>
@@ -76,6 +78,13 @@ export function useSearchController(
     return controllerRef.current!.search(query, opts);
   }, []);
 
+  const searchMultiple = useCallback(
+    (contexts: SearchContext[], opts?: SearchOptions) => {
+      return controllerRef.current!.searchMultiple(contexts, opts);
+    },
+    []
+  );
+
   const next = useCallback(() => {
     controllerRef.current!.next();
   }, []);
@@ -92,5 +101,5 @@ export function useSearchController(
     controllerRef.current!.clear();
   }, []);
 
-  return { search, next, prev, goTo, clear, current, total };
+  return { search, searchMultiple, next, prev, goTo, clear, current, total };
 }

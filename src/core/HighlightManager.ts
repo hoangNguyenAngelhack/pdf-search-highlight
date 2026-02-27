@@ -25,10 +25,15 @@ export class HighlightManager {
   /**
    * Apply highlights for all matches on a page.
    * Returns the SearchMatch[] (array of mark groups).
+   *
+   * @param classPerMatch - Optional per-match CSS class names (for multi-context search).
+   *   When provided, `classPerMatch[i]` is the CSS class for `matchRanges[i]`.
+   *   When omitted, all matches use the default highlight class.
    */
   applyHighlights(
     pageSpans: SpanData[],
-    matchRanges: MatchRange[][]
+    matchRanges: MatchRange[][],
+    classPerMatch?: string[]
   ): SearchMatch[] {
     if (!matchRanges.length) return [];
 
@@ -68,7 +73,7 @@ export class HighlightManager {
         // Add highlight mark
         if (actualStart < r.end) {
           const mark = document.createElement('mark');
-          mark.className = this.highlightClass;
+          mark.className = classPerMatch?.[r.matchIdx] ?? this.highlightClass;
           mark.textContent = s.text.slice(actualStart, r.end);
           frag.appendChild(mark);
           matchMarks[r.matchIdx].push(mark);

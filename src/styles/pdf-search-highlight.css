@@ -38,7 +38,7 @@
   background: rgba(0, 100, 200, 0.3);
 }
 
-/* Search highlights */
+/* Search highlights — single query */
 .highlight {
   background: rgba(255, 230, 0, 0.45) !important;
   border-radius: 2px;
@@ -50,6 +50,32 @@
 }
 
 .highlight.active {
+  background: rgba(233, 69, 96, 0.55) !important;
+}
+
+/* Multi-context search highlight colors (8 colors, cycles with modulo) */
+.highlight-0 { --psh-ctx-color: rgba(255, 230, 0, 0.45); }   /* Yellow */
+.highlight-1 { --psh-ctx-color: rgba(0, 200, 255, 0.40); }    /* Cyan */
+.highlight-2 { --psh-ctx-color: rgba(0, 230, 120, 0.40); }    /* Green */
+.highlight-3 { --psh-ctx-color: rgba(255, 150, 0, 0.45); }    /* Orange */
+.highlight-4 { --psh-ctx-color: rgba(190, 100, 255, 0.40); }  /* Purple */
+.highlight-5 { --psh-ctx-color: rgba(255, 100, 150, 0.40); }  /* Pink */
+.highlight-6 { --psh-ctx-color: rgba(130, 190, 255, 0.40); }  /* Light Blue */
+.highlight-7 { --psh-ctx-color: rgba(200, 220, 100, 0.45); }  /* Lime */
+
+[class^="highlight-"],
+[class*=" highlight-"] {
+  background: var(--psh-ctx-color) !important;
+  border-radius: 2px;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  color: transparent;
+}
+
+[class^="highlight-"].active,
+[class*=" highlight-"].active {
   background: rgba(233, 69, 96, 0.55) !important;
 }
 

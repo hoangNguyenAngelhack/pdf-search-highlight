@@ -10,6 +10,7 @@ import {
   PDFSearchViewer as CorePDFSearchViewer,
   type PDFSearchViewerOptions,
   type SearchOptions,
+  type SearchContext,
   type PDFSource,
 } from '../core';
 
@@ -23,6 +24,9 @@ export interface PDFSearchViewerProps {
   /** Search query string. Empty/undefined clears the search. */
   searchQuery?: string;
 
+  /** Multiple search contexts (alternative to searchQuery). Each context highlighted with different color. */
+  searchContexts?: SearchContext[];
+
   /** Search options. */
   searchOptions?: SearchOptions;
 
@@ -34,6 +38,9 @@ export interface PDFSearchViewerProps {
 
   /** Called when search completes. */
   onSearch?: (data: { query: string; total: number }) => void;
+
+  /** Called when multi-context search completes. */
+  onSearchMultiple?: (data: { contexts: SearchContext[]; total: number; totalsPerContext: number[] }) => void;
 
   /** Called when active match changes. */
   onMatchChange?: (data: { current: number; total: number }) => void;
@@ -58,6 +65,8 @@ export interface PDFSearchViewerHandle {
   prevMatch: () => number;
   /** Clear all search highlights. */
   clearSearch: () => void;
+  /** Search multiple contexts. Returns total match count. */
+  searchMultiple: (contexts: SearchContext[], options?: SearchOptions) => number;
   /** Get total match count. */
   getMatchCount: () => number;
   /** Get current match index. */
@@ -84,10 +93,12 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
     pdfjsLib,
     source,
     searchQuery,
+    searchContexts,
     searchOptions,
     viewerOptions,
     onLoad,
     onSearch,
+    onSearchMultiple,
     onMatchChange,
     onZoom,
     onError,
@@ -99,8 +110,8 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
   const coreRef = useRef<CorePDFSearchViewer | null>(null);
 
   // Store latest callbacks in refs to avoid re-subscribing
-  const callbackRefs = useRef({ onLoad, onSearch, onMatchChange, onZoom, onError });
-  callbackRefs.current = { onLoad, onSearch, onMatchChange, onZoom, onError };
+  const callbackRefs = useRef({ onLoad, onSearch, onSearchMultiple, onMatchChange, onZoom, onError });
+  callbackRefs.current = { onLoad, onSearch, onSearchMultiple, onMatchChange, onZoom, onError };
 
   // Initialize core on mount
   useEffect(() => {
@@ -114,6 +125,7 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
 
     core.on('load', (data) => callbackRefs.current.onLoad?.(data));
     core.on('search', (data) => callbackRefs.current.onSearch?.(data));
+    core.on('searchmultiple', (data) => callbackRefs.current.onSearchMultiple?.(data));
     core.on('matchchange', (data) => callbackRefs.current.onMatchChange?.(data));
     core.on('zoom', (data) => callbackRefs.current.onZoom?.(data));
     core.on('error', (data) => callbackRefs.current.onError?.(data));
@@ -135,22 +147,26 @@ export const PDFSearchViewer = forwardRef(function PDFSearchViewer(
     });
   }, [source]);
 
-  // Run search when query or options change
+  // Run search when query, contexts, or options change
   useEffect(() => {
     if (!coreRef.current) return;
 
-    if (searchQuery && searchQuery.trim().length > 0) {
+    if (searchContexts && searchContexts.length > 0) {
+      coreRef.current.searchMultiple(searchContexts, searchOptions);
+    } else if (searchQuery && searchQuery.trim().length > 0) {
       coreRef.current.search(searchQuery, searchOptions);
     } else {
       coreRef.current.clearSearch();
     }
-  }, [searchQuery, searchOptions]);
+  }, [searchQuery, searchContexts, searchOptions]);
 
   // Expose imperative methods via ref
   useImperativeHandle(ref, () => ({
     nextMatch: () => coreRef.current?.nextMatch() ?? -1,
     prevMatch: () => coreRef.current?.prevMatch() ?? -1,
     clearSearch: () => coreRef.current?.clearSearch(),
+    searchMultiple: (contexts: SearchContext[], opts?: SearchOptions) =>
+      coreRef.current?.searchMultiple(contexts, opts) ?? 0,
     getMatchCount: () => coreRef.current?.getMatchCount() ?? 0,
     getCurrentMatchIndex: () => coreRef.current?.getCurrentMatchIndex() ?? -1,
     zoomIn: async () => { await coreRef.current?.zoomIn(); },

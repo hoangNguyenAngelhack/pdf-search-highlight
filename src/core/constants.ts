@@ -16,3 +16,6 @@ export const DEFAULT_PAGE_GAP = 20;
 export const ZOOM_STEP = 0.25;
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 5;
+
+/** Number of predefined multi-context highlight colors (cycles with modulo). */
+export const MULTI_CONTEXT_COLOR_COUNT = 8;

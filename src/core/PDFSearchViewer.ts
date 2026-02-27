@@ -1,11 +1,13 @@
 import { EventEmitter } from './EventEmitter';
 import { PDFRenderer } from './PDFRenderer';
 import { searchPage } from './SearchEngine';
+import type { MatchRange } from './SearchEngine';
 import { HighlightManager } from './HighlightManager';
-import { DEFAULT_CLASS_NAMES, ZOOM_STEP, MIN_SCALE, MAX_SCALE } from './constants';
+import { DEFAULT_CLASS_NAMES, ZOOM_STEP, MIN_SCALE, MAX_SCALE, MULTI_CONTEXT_COLOR_COUNT } from './constants';
 import type {
   PDFSearchViewerOptions,
   SearchOptions,
+  SearchContext,
   PDFSearchViewerEventMap,
   PageData,
 } from '../types';
@@ -38,6 +40,8 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
   private pageData: PageData[] = [];
   private lastQuery = '';
   private lastSearchOptions: SearchOptions = {};
+  private lastContexts: SearchContext[] = [];
+  private lastIsMultiContext = false;
   private destroyed = false;
 
   constructor(
@@ -86,6 +90,8 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
     this.highlightManager.clearHighlights(this.pageData);
     this.lastQuery = query;
     this.lastSearchOptions = options;
+    this.lastIsMultiContext = false;
+    this.lastContexts = [];
 
     const trimmed = query.trim();
     if (!trimmed) {
@@ -109,6 +115,88 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
     }
 
     this.emit('search', { query, total });
+    this.emit('matchchange', {
+      current: total > 0 ? 0 : -1,
+      total,
+    });
+
+    return total;
+  }
+
+  /**
+   * Search for multiple query contexts across all pages.
+   * Each context is highlighted with a different color (highlight-0, highlight-1, ...).
+   * Navigation (nextMatch/prevMatch) cycles through ALL matches in document order.
+   * Returns total number of matches across all contexts.
+   */
+  searchMultiple(contexts: SearchContext[], sharedOptions: SearchOptions = {}): number {
+    if (this.destroyed) throw new Error('PDFSearchViewer has been destroyed');
+
+    this.highlightManager.clearHighlights(this.pageData);
+    this.lastContexts = contexts;
+    this.lastIsMultiContext = true;
+    this.lastQuery = '';
+    this.lastSearchOptions = sharedOptions;
+
+    const validContexts = contexts.filter((c) => c.query.trim());
+    if (validContexts.length === 0) {
+      this.emit('searchmultiple', { contexts, total: 0, totalsPerContext: contexts.map(() => 0) });
+      this.emit('matchchange', { current: -1, total: 0 });
+      return 0;
+    }
+
+    const totalsPerContext = new Array(validContexts.length).fill(0);
+
+    for (const pd of this.pageData) {
+      const allMatchRanges: MatchRange[][] = [];
+      const classPerMatch: string[] = [];
+      const contextPerMatch: number[] = [];
+
+      for (let ci = 0; ci < validContexts.length; ci++) {
+        const ctx = validContexts[ci];
+        const opts = { ...sharedOptions, ...ctx.options };
+        const pageMatches = searchPage(pd.spans, ctx.query.trim(), opts);
+
+        for (const matchRange of pageMatches) {
+          allMatchRanges.push(matchRange);
+          classPerMatch.push(`highlight-${ci % MULTI_CONTEXT_COLOR_COUNT}`);
+          contextPerMatch.push(ci);
+        }
+      }
+
+      // Sort all matches by document position
+      const indices = allMatchRanges.map((_, i) => i);
+      indices.sort((a, b) => {
+        const aFirst = allMatchRanges[a][0];
+        const bFirst = allMatchRanges[b][0];
+        if (!aFirst || !bFirst) return 0;
+        if (aFirst.spanIdx !== bFirst.spanIdx) return aFirst.spanIdx - bFirst.spanIdx;
+        return aFirst.start - bFirst.start;
+      });
+
+      const sortedRanges = indices.map((i) => allMatchRanges[i]);
+      const sortedClasses = indices.map((i) => classPerMatch[i]);
+
+      // Count per context
+      for (const i of indices) {
+        totalsPerContext[contextPerMatch[i]]++;
+      }
+
+      const matches = this.highlightManager.applyHighlights(
+        pd.spans,
+        sortedRanges,
+        sortedClasses
+      );
+      this.highlightManager.addMatches(matches);
+    }
+
+    const total = this.highlightManager.getTotal();
+
+    if (total > 0) {
+      this.highlightManager.setActiveMatch(0);
+    }
+
+    this.emit('searchmultiple', { contexts, total, totalsPerContext });
     this.emit('matchchange', {
       current: total > 0 ? 0 : -1,
       total,
@@ -147,6 +235,8 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
   clearSearch(): void {
     this.highlightManager.clearHighlights(this.pageData);
     this.lastQuery = '';
+    this.lastContexts = [];
+    this.lastIsMultiContext = false;
     this.emit('search', { query: '', total: 0 });
     this.emit('matchchange', { current: -1, total: 0 });
   }
@@ -192,7 +282,10 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
   private async rerender(): Promise<void> {
     this.highlightManager.clearHighlights(this.pageData);
     this.pageData = await this.renderer.renderAllPages();
-    if (this.lastQuery.trim()) {
+
+    if (this.lastIsMultiContext && this.lastContexts.length > 0) {
+      this.searchMultiple(this.lastContexts, this.lastSearchOptions);
+    } else if (this.lastQuery.trim()) {
       this.search(this.lastQuery, this.lastSearchOptions);
     }
   }

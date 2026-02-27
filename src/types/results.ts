@@ -29,3 +29,14 @@ export interface PageData {
   /** All text spans on this page. */
   spans: SpanData[];
 }
+
+/**
+ * A single search context for multi-context search.
+ * Each context represents a separate query highlighted with a distinct color.
+ */
+export interface SearchContext {
+  /** The query string to search for. */
+  query: string;
+  /** Optional per-context search options (overrides shared options). */
+  options?: import('./options').SearchOptions;
+}

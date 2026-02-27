@@ -12,7 +12,7 @@ export { searchPage } from './SearchEngine';
 export type { MatchRange } from './SearchEngine';
 export { HighlightManager } from './HighlightManager';
 export { EventEmitter } from './EventEmitter';
-export { DEFAULT_CLASS_NAMES, DEFAULT_SCALE, DEFAULT_PAGE_GAP, ZOOM_STEP, MIN_SCALE, MAX_SCALE } from './constants';
+export { DEFAULT_CLASS_NAMES, DEFAULT_SCALE, DEFAULT_PAGE_GAP, ZOOM_STEP, MIN_SCALE, MAX_SCALE, MULTI_CONTEXT_COLOR_COUNT } from './constants';
 
 // Types
 export type {
@@ -23,4 +23,5 @@ export type {
   SearchMatch,
   PageData,
   SpanData,
+  SearchContext,
 } from '../types';

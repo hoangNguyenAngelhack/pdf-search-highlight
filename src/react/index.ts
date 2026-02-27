@@ -12,6 +12,7 @@ export type { PDFSearchViewerProps, PDFSearchViewerHandle } from './PDFSearchVie
 export type {
   PDFSearchViewerOptions,
   SearchOptions,
+  SearchContext,
   ClassNames,
   SearchMatch,
   PageData,
