@@ -29,6 +29,9 @@ export interface PDFSearchViewerOptions {
   /** Gap in pixels between rendered pages. Defaults to 20. */
   pageGap?: number;
 
+  /** Auto-scroll to active match on search/next/prev. Defaults to true. */
+  autoScroll?: boolean;
+
   /**
    * Custom CSS class names for viewer elements.
    * Override any or all to apply your own styles.

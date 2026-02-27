@@ -59,6 +59,9 @@ export class PDFSearchViewer extends EventEmitter<PDFSearchViewerEventMap> {
       cls.highlight,
       cls.activeHighlight
     );
+    if (options.autoScroll !== undefined) {
+      this.highlightManager.autoScroll = options.autoScroll;
+    }
   }
 
   /**

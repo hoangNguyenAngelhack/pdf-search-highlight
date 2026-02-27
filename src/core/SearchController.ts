@@ -6,6 +6,8 @@ import type { SearchOptions, ClassNames, PageData, SearchContext } from '../type
 
 export interface SearchControllerOptions {
   classNames?: Pick<ClassNames, 'highlight' | 'activeHighlight'>;
+  /** Auto-scroll to active match on search/next/prev. Defaults to true. */
+  autoScroll?: boolean;
 }
 
 /**
@@ -54,6 +56,17 @@ export class SearchController {
   constructor(options: SearchControllerOptions = {}) {
     const cls = { ...DEFAULT_CLASS_NAMES, ...options.classNames };
     this.highlightManager = new HighlightManager(cls.highlight, cls.activeHighlight);
+    if (options.autoScroll !== undefined) {
+      this.highlightManager.autoScroll = options.autoScroll;
+    }
+  }
+
+  /** Get or set auto-scroll behavior. */
+  get autoScroll(): boolean {
+    return this.highlightManager.autoScroll;
+  }
+  set autoScroll(value: boolean) {
+    this.highlightManager.autoScroll = value;
   }
 
   /**

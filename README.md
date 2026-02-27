@@ -18,6 +18,7 @@ npm install pdf-search-highlight pdfjs-dist
 - **Multi-context search** — search multiple queries simultaneously, each highlighted with a different color
 - Cross-span highlight using `<mark>` elements
 - Navigate between matches (next/prev, auto-scroll)
+- Toggle auto-scroll on/off — disable scrolling to active match when needed
 - Zoom in/out with configurable scale
 - Download loaded PDF files
 - Case sensitive toggle
@@ -84,6 +85,7 @@ import 'pdf-search-highlight/styles.css';
 const viewer = new PDFSearchViewer(container, pdfjsLib, {
   scale: 'auto', // or a number like 1.5
   pageGap: 20,
+  autoScroll: true, // set false to disable scroll-to-match
 });
 
 await viewer.loadPDF(file);
@@ -236,10 +238,14 @@ renderer.cleanup();                        // Release resources
 
 ```js
 const search = new SearchController({
-  classNames: { highlight: 'my-hl', activeHighlight: 'my-active' }
+  classNames: { highlight: 'my-hl', activeHighlight: 'my-active' },
+  autoScroll: true, // set false to disable scroll-to-match
 });
 
 search.setPages(pages);
+
+// Toggle auto-scroll at runtime
+search.autoScroll = false;
 
 // Single search
 search.search('query', { caseSensitive: false, flexibleWhitespace: true });
@@ -310,6 +316,7 @@ interface PDFSearchViewerOptions {
   scale?: number | 'auto';    // Default: 'auto' (fit container width)
   workerSrc?: string;         // Path to pdf.js worker
   pageGap?: number;           // Gap between pages in px (default: 20)
+  autoScroll?: boolean;       // Auto-scroll to active match (default: true)
   classNames?: ClassNames;    // Custom CSS class names
 }
 

@@ -17,6 +17,9 @@ export class HighlightManager {
   private highlightClass: string;
   private activeHighlightClass: string;
 
+  /** Whether to auto-scroll to the active match. Defaults to true. */
+  autoScroll = true;
+
   constructor(highlightClass: string, activeHighlightClass: string) {
     this.highlightClass = highlightClass;
     this.activeHighlightClass = activeHighlightClass;
@@ -135,10 +138,12 @@ export class HighlightManager {
         m.classList.add(this.activeHighlightClass)
       );
       // Scroll first mark into view
-      this.matches[index].marks[0]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
+      if (this.autoScroll) {
+        this.matches[index].marks[0]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
     }
   }
 
