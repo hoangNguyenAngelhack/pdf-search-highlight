@@ -199,10 +199,11 @@ function App() {
 | Export | Description |
 |---|---|
 | `PDFRenderer` | Renders PDF pages into a container (canvas + text layer) |
-| `SearchController` | Headless search + highlight controller |
-| `PDFSearchViewer` | All-in-one: render + search + highlight + zoom + download |
+| `SearchController` | Headless search + highlight controller. `search()` for single query, `searchMultiple()` for multi-context |
+| `PDFSearchViewer` | All-in-one: render + search + highlight + zoom + download. `search()` + `searchMultiple()` |
 | `searchPage` | Low-level: search spans with flexible regex |
 | `HighlightManager` | Low-level: apply/clear highlights on spans |
+| `SearchContext` | Type: `{ query: string; options?: SearchOptions }` — used with `searchMultiple()` |
 
 ### React (`pdf-search-highlight/react`)
 
@@ -210,7 +211,8 @@ function App() {
 |---|---|
 | `usePDFRenderer(pdfjsLib, options?)` | Hook: render PDF, returns `{ containerRef, pages, loadPDF, scale, setScale, zoomIn, zoomOut, download, ... }` |
 | `useSearchController(pages, options?)` | Hook: search + highlight, returns `{ search, searchMultiple, next, prev, goTo, clear, current, total }` |
-| `PDFSearchViewer` | All-in-one component with ref handle for imperative control |
+| `PDFSearchViewer` | All-in-one component. Props: `searchQuery` (single) or `searchContexts` (multi). Ref handle: `nextMatch`, `prevMatch`, `searchMultiple`, `clearSearch`, ... |
+| `SearchContext` | Type re-exported from core |
 
 ### PDFRenderer
 
@@ -268,17 +270,21 @@ search.contexts  // last multi-context queries
 const viewer = new PDFSearchViewer(container, pdfjsLib, options);
 
 await viewer.loadPDF(source);
+
+// Single search
 viewer.search('query', { caseSensitive: true });
 
-// Multi-context search
+// Multi-context search — each context highlighted with a different color
 viewer.searchMultiple([
   { query: 'contract' },
   { query: 'payment' },
+  { query: 'deadline', options: { fuzzy: true } },
 ]);
 
-viewer.nextMatch();
-viewer.prevMatch();
-viewer.clearSearch();
+// Navigation — works for both single and multi-context
+viewer.nextMatch();                        // Next match (all contexts, document order)
+viewer.prevMatch();                        // Previous match
+viewer.clearSearch();                      // Clear all highlights
 
 await viewer.zoomIn();                     // Zoom in by 0.25
 await viewer.zoomOut();                    // Zoom out by 0.25
